@@ -6,10 +6,7 @@ String readValue;
 GameState state = GameState.START;
 PlayerState blueState = PlayerState.SET;
 PlayerState redState = PlayerState.SET;
-int mutexTimer = 0;
-int hurdlesTimer = 0;
-int blueTimer = 0;
-int redTimer = 0;
+
 final int blueScreenY = 200;
 final int redScreenY = 325;
 int blueX = 25;
@@ -17,18 +14,22 @@ int redX = 25;
 int blueY = 0;
 int redY = 0;
 
+//Constants used
 int MAX_RAND = 225;
 int MIN_RAND = 125;
 int MAX_HEIGHT = -50;
 int MIN_HEIGHT = 0;
-
-int gameOverTimer = 0;
-
 int MAX_GAME_OVER_TIMER = 500;
 int MAX_HURT_TIMER = 50;
 int MAX_GAME_TIME = 5000;
 
+//Timers to control several aspects of the game.
 int gameTimer = 0;
+int gameOverTimer = 0;
+int mutexTimer = 0;
+int hurdlesTimer = 0;
+int blueTimer = 0;
+int redTimer = 0;
 
 PFont f;
 
@@ -36,9 +37,10 @@ int randomNum = 0; //used to create hurdles at a random timestamp
 
 ArrayList<Integer> hurdles = new ArrayList<Integer>();
 void setup(){
-  println("setup called");
+  
   f = createFont("Arial",28,true); // Arial, 16 point, anti-aliasing on
   
+  //Initializing Serial Port for comunication and screen.
   String portName = Serial.list()[0];
   myPort = new Serial (this, portName, 9600);
   size(400, 400);
@@ -48,6 +50,7 @@ void setup(){
   blueState = PlayerState.SET;
   redState = PlayerState.SET;
   
+  //Initializing timers to 0 at start
   mutexTimer = 0;
   blueTimer = 0;
   redTimer = 0;
@@ -55,6 +58,7 @@ void setup(){
   gameTimer = 0;
   hurdlesTimer = 0;
   
+  //Initializing positions and 
   blueX = 25;
   redX = 25;
   blueY = 0;
@@ -64,9 +68,12 @@ void setup(){
 }
 void draw(){
   
+  //Check if it Game is over
+  //Two conditions - Either the time has passed, or one of the players got out of the screen
+  //The player who is in front wins.  
   if(gameTimer >= MAX_GAME_TIME || blueX < 0 || redX < 0){
-    textFont(f,38);                 // STEP 4 Specify font to be used
-    fill(255);                        // STEP 5 Specify font color 
+    textFont(f,38);
+    fill(255); 
     if(blueX > redX){
       text("Blue player Wins!",50,200);
     }else{
@@ -74,9 +81,9 @@ void draw(){
     }
    
    gameOverTimer++;
+   //Check if the Game Over message can be discarted and the game can be restarted
    println("Game Over Timer: " + gameOverTimer);
    if(gameOverTimer >= MAX_GAME_OVER_TIMER){
-      println("Should restart now..."); 
       myPort.stop();
       setup();
    }else
@@ -143,14 +150,12 @@ void draw(){
     hurdlesTimer++;
   }
   
+  // Snippet for the communication.  
   if(myPort.available() > 0){
     
-    //println("Messge received from arduino...");
+    readValue = myPort.readStringUntil('\n'); // Read line by line what's in the buffer.
     
-    readValue = myPort.readStringUntil('\n');
-    
-   // println("Read: " + readValue);
-    
+    //Parsing the received messages    
     if(readValue != null){
       if(state == GameState.READY && readValue.contains("RFID_RED")){
          state = GameState.REDONLY;
@@ -164,14 +169,14 @@ void draw(){
       if(state == GameState.REDONLY && readValue.contains("RFID_BLUE")){
          state = GameState.BOTH;
       }
-      if(readValue.contains("BLUE_PRESS") /*&& (blueState == PlayerState.RUNNING || blueState == PlayerState.HURTING)*/){
+      if(readValue.contains("BLUE_PRESS")){
         println(readValue);
          blueState = PlayerState.JUMPING;
       }
       if(readValue.contains("BLUE_RELEASE")){
          println(readValue);      
       }
-      if(readValue.contains("RED_PRESS") /*&& (redState  == PlayerState.RUNNING || redState == PlayerState.HURTING)*/){
+      if(readValue.contains("RED_PRESS") ){
         println(readValue); 
         redState = PlayerState.JUMPING;      
       }
@@ -187,6 +192,8 @@ void draw(){
   checkColisions();
   
 }
+
+//Function to check collisions between players. This checking is done by comparing if a hurdle's X position is the same as the player's X and if this is not jumping (A bit naive algorithm, does not fully check the collision)
 
 void checkColisions(){
  for(int i = 0; i < hurdles.size(); i++){
@@ -204,6 +211,8 @@ void checkColisions(){
   
 }
 
+//Players are being drawn here. And the jumping control is also done here. When the player jumps, it decreases its Y position (because (0,0) is on the top left of the screen) until 50 px. 
+//Then, when the players reaches that altitude, starts falling again until he reaches the original position.
 void drawPlayers(){
   //BluePlayer
   if(blueState == PlayerState.JUMPING && blueY >= MAX_HEIGHT){

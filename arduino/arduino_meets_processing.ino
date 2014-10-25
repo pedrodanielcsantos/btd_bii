@@ -1,5 +1,7 @@
 #include <SoftwareSerial.h>
 
+
+//Initialization of global variables and constants
 SoftwareSerial RFID(2, 3); // RX and TX
 
 int data1 = 0;
@@ -15,9 +17,11 @@ int blueButtonState = buttonUnpressed;
 int bluePlayerButton = 7;
 int redPlayerButton = 8;
 
-int redTag[14] = {2,51,68,48,48,65,57,49,56,52,69,67,50,3};
-int blueTag[14] = {2,48,51,48,48,65,53,50,49,52,52,67,51,3};
+int redTag[14] = {2,51,68,48,48,65,57,49,56,52,69,67,50,3}; //Identifier of the red RFID tag
+int blueTag[14] = {2,48,51,48,48,65,53,50,49,52,52,67,51,3}; // Identifier of the blue RFID tag
 int newtag[14] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0}; // used for read comparisons
+
+
 void setup()
 {
   RFID.begin(9600); // start serial to RFID reader
@@ -28,9 +32,9 @@ void setup()
   digitalWrite(bluePlayerButton,HIGH);
   pinMode(redPlayerButton,INPUT);
   digitalWrite(redPlayerButton,HIGH);
-  
-
 }
+
+//Comparing two tags (arrays of values)
 boolean comparetag(int aa[14], int bb[14])
 {
   boolean ff = false;
@@ -45,8 +49,10 @@ boolean comparetag(int aa[14], int bb[14])
   }
   return ff;
 }
-void checkmytags() // compares each tag against the tag just read
-{
+
+//Check if a read tag is one of ours and return its value.
+void checkmytags(){
+  
   if (comparetag(newtag, redTag) == true){
     readTag = RED;
   }
@@ -54,10 +60,12 @@ void checkmytags() // compares each tag against the tag just read
     readTag = BLUE;
   }
 }
+
+//Function to read RFID tags from the sensor
 void readTags()
 {
   readTag = -1;
-  if (RFID.available() > 0) {
+  if (RFID.available() > 0) {//checks if there is any value to read on the buffer.
     // read tag numbers
     delay(100); // needed to allow time for the data to come in from the serial buffer.
     for (int z = 0 ; z < 14 ; z++){ // read the rest of the tag
@@ -65,10 +73,10 @@ void readTags()
       newtag[z] = data1;
     }
     RFID.flush(); // stops multiple reads
-    // do the tags match up?
+    // Compare the read value to check if it is a valid one
     checkmytags();
   }
-  // now do something based on tag type
+  // Based on the read value, write to the buffer the correspondent command
   if (readTag == BLUE){ // if we had a match{
     Serial.println("RFID_BLUE");    
   }else if (readTag == RED){ // if we didn't have a match
@@ -77,6 +85,7 @@ void readTags()
   readTag = -1;
 }
 
+//Read the value of the buttons - if it is the red or the blue one or even if it is a press or a release from that button.
 void readButtons(){
   
   if(digitalRead(bluePlayerButton) == buttonPressed){
@@ -104,6 +113,8 @@ void readButtons(){
   }
 }
 
+//In the main loop, we are reading the buttons and RFID tags to send commands to processing to notify it from the user's actions, and then these commands are parsed on processing
+//
 void loop()
 {
   readTags();
