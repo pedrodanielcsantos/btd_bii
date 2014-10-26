@@ -7,10 +7,13 @@ GameState state = GameState.START;
 PlayerState blueState = PlayerState.SET;
 PlayerState redState = PlayerState.SET;
 
+//constant y coordinate of players
 final int blueScreenY = 200;
 final int redScreenY = 325;
+//variable x coordinate of players
 int blueX = 25;
 int redX = 25;
+//auxiliar y coordinate used to simulate jump
 int blueY = 0;
 int redY = 0;
 
@@ -91,8 +94,12 @@ void draw(){
    
   }
   
+  //cleans the last frame
   background(0, 0, 0);
+  //variable to check if the "camera" moves
   boolean bothMoving = true;
+
+  //makes the red lights blink
   if(state == GameState.START){
     if(mutexTimer < 50 || (mutexTimer < 100 && mutexTimer > 60)){
       stroke(#FF0000);
@@ -106,30 +113,39 @@ void draw(){
       state = GameState.READY;
   }
   
+  //makes the green light appear
   if(state == GameState.READY || state == GameState.REDONLY || state == GameState.BLUEONLY){
     stroke(#00FF00);
     fill(#00FF00);
     ellipse(200, 75, 75, 75);
   }
   
+  //IF the blue player is the only one that started running
+  //OR the red player hits a hurdle and is ahead of the player
+  //the camera "stops"
   if(state == GameState.BLUEONLY || (redState == PlayerState.HURTING && redX > blueX)){
     blueX++; 
     bothMoving = false;
   }
   
+  //Same as the last if, but for the red player
   if(state == GameState.REDONLY || (blueState== PlayerState.HURTING && blueX > redX)){
     redX++; 
     bothMoving = false;
   }
   
+  //If the red player hits a hurdle and is behind
+  //the camera does not stop and he stays behind
   if(redState == PlayerState.HURTING && redX <= blueX){
     redX--;
   }
   
+  //Same as last if, but for the blue player
   if(blueState == PlayerState.HURTING && blueX <= redX){
     blueX--;
   }
   
+  //Camera "moves" and makes the hurdle closer
   if(bothMoving){
     for(Integer i = 0; i < hurdles.size(); i++){
       hurdles.set(i, hurdles.get(i) -1);
@@ -137,7 +153,7 @@ void draw(){
     }
   }
   
-  
+  //Hurdles creation
   if(state == GameState.BOTH && bothMoving){
     
     if(hurdlesTimer >= randomNum){
