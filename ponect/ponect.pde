@@ -77,6 +77,8 @@ void draw()
   }
 }
 
+//LEFT PLAYER IS ALWAYS INDEX 0;
+//RIGHT PLAYER IS ALWAYS INDEX 1;
 void checkTheBalls(){
  
  ArrayList<Integer> toRemove = new ArrayList<Integer>();
@@ -85,15 +87,51 @@ void checkTheBalls(){
  synchronized(balls){
   for(Integer id : balls.keySet()/*FCircle ball : balls*/){
    
-    if(balls.get(id).getX() < 0 || balls.get(id).getX() > width || balls.get(id).getY() > height){    
+    if(balls.get(id).getX() < 0 || balls.get(id).getX() > width || balls.get(id).getY() > height){ 
+     println("Ball fell...");   
      
+      if(state == GameState.ONEVSONE){
+        println("One vs one");
+        FCircle ball = new FCircle(25);
+        if(balls.get(id).getY() > height){
+          println("Ball out of bound vertically");
+         if(balls.get(id).getX() < (width/2)){//Point for right player
+           println("Point for right Player");
+           ball.setPosition(width/4,0);
+           synchronized(result){
+             synchronized(bodies){
+               result.put(bodies.get(1).dwTrackingID, result.get(bodies.get(1).dwTrackingID) + 1);
+             }
+           }
+         }else{ // Point for left player
+           println("Point for left player");
+           ball.setPosition((width/4)*3,0);
+           synchronized(result){
+             synchronized(bodies){
+               result.put(bodies.get(0).dwTrackingID, result.get(bodies.get(0).dwTrackingID) + 1);
+             }
+           }
+         }
+         println("gonna update balls now");
+        synchronized(world){
+          world.remove(balls.get(id));
+          balls.remove(id);
+          ball.setRestitution(0.75);
+          ball.setFill(255,102,0);
+          world.add(ball);
+          balls.put(0,ball);
+        }
+       } 
+       return;
+      }
+      
      synchronized(world){
       world.remove(balls.get(id)); 
      }
      
      synchronized(result){
       if(result.containsKey(id)){
-        result.put(id,0);
+        result.put(id,result.get(id) + 1);
         
         FCircle ball = new FCircle(25);
         synchronized(bodies){
@@ -143,6 +181,10 @@ void drawResults(){
     }
    }
  } 
+ if(state == GameState.ONEVSONE){
+   fill(0,255,0);
+  line(width/2, 0, width/2, height); 
+ }
 }
 
 boolean isInsideOneVsOne(float x, float y){
@@ -166,6 +208,9 @@ void checkAndInside(){
     
     if(isInsideOneVsOne(x,y)){
       state = GameState.ONEVSONE;
+      if(bodies.size() == 2){
+        startOneVsOne();
+      }
       println("State changed to onevs one");
     }
     if(isInsideAllAround(x,y)){
@@ -174,6 +219,17 @@ void checkAndInside(){
       println("State changed to allaround");
     }
    }
+ } 
+}
+void startOneVsOne(){
+ synchronized(world){
+   FCircle ball = new FCircle(25);
+   ball.setPosition(random(0+10, width-10), 0);
+   ball.setRestitution(0.75);
+   ball.setFill(255,102,0);
+   world.add(ball);
+   balls.put(0,ball);
+   ballCount++;
  } 
 }
 
@@ -245,7 +301,8 @@ void appearEvent(SkeletonData _s)
        world.add(_r);
        racquets.put(_s.dwTrackingID, _r);
       }
-      if((state == GameState.ONEVSONE && ballCount == 0) || state == GameState.ALLAROUND){  
+      if((state == GameState.ONEVSONE && balls.size() == 0  && bodies.size() == 2) || state == GameState.ALLAROUND){  
+        println("Adding ball to game...");
         FCircle ball = new FCircle(25);
         ball.setPosition(_s.position.x*width/*random(0+10, width-10)*/, 0);
         ball.setRestitution(0.75);
